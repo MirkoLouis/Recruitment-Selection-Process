@@ -13,12 +13,20 @@
             </div>
             <p class="text-muted">Review incoming applicants and verify personal data sheet, birth certificate, and transcript of records.</p>
             
+            <div class="mb-3">
+                <div class="input-group glass-panel">
+                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Search by name or tracking number..." onkeyup="filterTable(this, 'table-step1')">
+                </div>
+            </div>
+
             <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
-                <table class="table table-hover align-middle mb-0 custom-table">
+                <table class="table table-hover align-middle mb-0 custom-table" id="table-step1">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
                             <th>Applicant Name</th>
+                            <th class="text-center">Check All</th>
                             <th class="text-center">PDS</th>
                             <th class="text-center">Birth Cert</th>
                             <th class="text-center">TOR</th>
@@ -32,6 +40,9 @@
                             <td>{{inc @index}}</td>
                             <td class="fw-medium">{{this.name}}</td>
                             <td class="text-center">
+                                <i class="bi fs-5 cursor-pointer bi-check-all text-primary" onclick="toggleAllRequirements({{this.id}}, {{#if (allRequirementsMet this)}}true{{else}}false{{/if}})" title="Toggle all requirements"></i>
+                            </td>
+                            <td class="text-center">
                                 <i class="bi fs-5 cursor-pointer {{#if this.req_pds}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_pds', {{this.req_pds}})"></i>
                             </td>
                             <td class="text-center">
@@ -42,12 +53,12 @@
                             </td>
                             <td><span class="badge bg-warning text-dark">Pending</span></td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-success action-btn" onclick="openQualifyModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check-circle"></i> Qualify</button>
+                                <button class="btn btn-sm btn-success action-btn" {{#unless (allRequirementsMet this)}}disabled title="Check all requirements first"{{/unless}} onclick="openQualifyModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check-circle"></i> Qualify</button>
                                 <button class="btn btn-sm btn-danger action-btn ms-1" onclick="disqualifyApplicant({{this.id}})"><i class="bi bi-x-circle"></i> Disqualify</button>
                             </td>
                         </tr>
                         {{else}}
-                        <tr><td colspan="7" class="text-center text-muted py-4">No pending applicants found.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">No pending applicants found.</td></tr>
                         {{/each}}
                     </tbody>
                 </table>
@@ -59,8 +70,15 @@
             <h2 class="fw-semibold mb-3">Deliberation & Interview Sheet</h2>
             <p class="text-muted">Assess qualified applicants and input their interview scores (out of 100).</p>
             
+            <div class="mb-3">
+                <div class="input-group glass-panel">
+                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Search by name or tracking number..." onkeyup="filterTable(this, 'table-step2')">
+                </div>
+            </div>
+
             <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
-                <table class="table table-hover align-middle mb-0 custom-table">
+                <table class="table table-hover align-middle mb-0 custom-table" id="table-step2">
                     <thead class="table-light">
                         <tr>
                             <th>Tracking Number</th>
@@ -94,8 +112,15 @@
             <h2 class="fw-semibold mb-3">Comparative Assessments</h2>
             <p class="text-muted">Leaderboard of assessed applicants ranked by their interview scores.</p>
             
+            <div class="mb-3">
+                <div class="input-group glass-panel">
+                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Search by name or tracking number..." onkeyup="filterTable(this, 'table-step3')">
+                </div>
+            </div>
+
             <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
-                <table class="table table-hover align-middle mb-0 custom-table leaderboard">
+                <table class="table table-hover align-middle mb-0 custom-table leaderboard" id="table-step3">
                     <thead class="table-light">
                         <tr>
                             <th>Rank</th>
@@ -134,8 +159,15 @@
             <h4 class="fw-semibold mb-3">Assignment Orders</h4>
             <p class="text-muted">Finalized applicants ready for assignment. Generate assignment letters here.</p>
             
+            <div class="mb-3">
+                <div class="input-group glass-panel">
+                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Search by name or tracking number..." onkeyup="filterTable(this, 'table-step4')">
+                </div>
+            </div>
+
             <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
-                <table class="table table-hover align-middle mb-0 custom-table">
+                <table class="table table-hover align-middle mb-0 custom-table" id="table-step4">
                     <thead class="table-light">
                         <tr>
                             <th>Tracking No.</th>
