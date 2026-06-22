@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS applicants (
     interviewScore INT DEFAULT NULL,
     interviewDate DATE DEFAULT NULL,
     assignedOffice VARCHAR(255) DEFAULT NULL,
+    req_pds BOOLEAN DEFAULT FALSE,
+    req_birthCert BOOLEAN DEFAULT FALSE,
+    req_tor BOOLEAN DEFAULT FALSE,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

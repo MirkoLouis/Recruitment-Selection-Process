@@ -58,11 +58,8 @@ body {
 }
 
 /* Custom Tabs */
-.custom-tabs {
-    border-bottom: 2px solid rgba(79, 70, 229, 0.1);
-}
 .custom-tabs .nav-link {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.6) !important;
     font-weight: 500;
     border: none;
     border-bottom: 3px solid transparent;
@@ -70,12 +67,12 @@ body {
     transition: all 0.3s ease;
 }
 .custom-tabs .nav-link:hover {
-    color: var(--primary);
-    background: rgba(79, 70, 229, 0.05);
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 8px 8px 0 0;
 }
 .custom-tabs .nav-link.active {
-    color: var(--primary);
+    color: #ffffff !important;
     background: transparent;
     border-bottom: 3px solid var(--primary);
 }
@@ -186,4 +183,13 @@ body {
         float: right;
         text-align: center;
     }
+}
+
+/* Utilities */
+.cursor-pointer {
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+.cursor-pointer:hover {
+    transform: scale(1.15);
 }

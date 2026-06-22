@@ -1,29 +1,12 @@
 {{> header}}
 
-<div class="glass-panel p-4 mb-5 shadow-sm rounded-4 d-print-none">
-    <h2 class="mb-4 fw-bold gradient-text">Process Overview</h2>
-    <!-- Nav Tabs -->
-    <ul class="nav nav-pills custom-tabs mb-4" id="rspTab" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="step1-tab" data-bs-toggle="tab" data-bs-target="#step1" type="button" role="tab">Step 1: Notice of Requirements</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="step2-tab" data-bs-toggle="tab" data-bs-target="#step2" type="button" role="tab">Step 2: Deliberation Sheet</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="step3-tab" data-bs-toggle="tab" data-bs-target="#step3" type="button" role="tab">Step 3: Comparative Assessments</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="step4-tab" data-bs-toggle="tab" data-bs-target="#step4" type="button" role="tab">Step 4: Assignment Orders</button>
-        </li>
-    </ul>
-
+<div class="glass-panel p-4 mb-0 shadow-sm rounded-4 d-print-none">
     <!-- Tab Content -->
     <div class="tab-content" id="rspTabContent">
         <!-- STEP 1 -->
         <div class="tab-pane fade show active" id="step1" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="fw-semibold">Notice of Requirements</h4>
+                <h2 class="fw-semibold">Notice of Requirements</h2>
                 <button class="btn btn-primary btn-add-glass" data-bs-toggle="modal" data-bs-target="#addApplicantModal">
                     <i class="bi bi-plus-lg"></i> Add Applicant
                 </button>
@@ -36,6 +19,9 @@
                         <tr>
                             <th>#</th>
                             <th>Applicant Name</th>
+                            <th class="text-center">PDS</th>
+                            <th class="text-center">Birth Cert</th>
+                            <th class="text-center">TOR</th>
                             <th>Status</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -45,6 +31,15 @@
                         <tr>
                             <td>{{inc @index}}</td>
                             <td class="fw-medium">{{this.name}}</td>
+                            <td class="text-center">
+                                <i class="bi fs-5 cursor-pointer {{#if this.req_pds}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_pds', {{this.req_pds}})"></i>
+                            </td>
+                            <td class="text-center">
+                                <i class="bi fs-5 cursor-pointer {{#if this.req_birthCert}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_birthCert', {{this.req_birthCert}})"></i>
+                            </td>
+                            <td class="text-center">
+                                <i class="bi fs-5 cursor-pointer {{#if this.req_tor}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_tor', {{this.req_tor}})"></i>
+                            </td>
                             <td><span class="badge bg-warning text-dark">Pending</span></td>
                             <td class="text-end">
                                 <button class="btn btn-sm btn-success action-btn" onclick="openQualifyModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check-circle"></i> Qualify</button>
@@ -52,7 +47,7 @@
                             </td>
                         </tr>
                         {{else}}
-                        <tr><td colspan="4" class="text-center text-muted py-4">No pending applicants found.</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-4">No pending applicants found.</td></tr>
                         {{/each}}
                     </tbody>
                 </table>
@@ -61,7 +56,7 @@
 
         <!-- STEP 2 -->
         <div class="tab-pane fade" id="step2" role="tabpanel">
-            <h4 class="fw-semibold mb-3">Deliberation & Interview Sheet</h4>
+            <h2 class="fw-semibold mb-3">Deliberation & Interview Sheet</h2>
             <p class="text-muted">Assess qualified applicants and input their interview scores (out of 100).</p>
             
             <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
@@ -96,7 +91,7 @@
 
         <!-- STEP 3 -->
         <div class="tab-pane fade" id="step3" role="tabpanel">
-            <h4 class="fw-semibold mb-3">Comparative Assessments</h4>
+            <h2 class="fw-semibold mb-3">Comparative Assessments</h2>
             <p class="text-muted">Leaderboard of assessed applicants ranked by their interview scores.</p>
             
             <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
@@ -137,34 +132,37 @@
         <!-- STEP 4 -->
         <div class="tab-pane fade" id="step4" role="tabpanel">
             <h4 class="fw-semibold mb-3">Assignment Orders</h4>
-            <p class="text-muted">Finalized applicants ready for assignment. Print assignment letters here.</p>
+            <p class="text-muted">Finalized applicants ready for assignment. Generate assignment letters here.</p>
             
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                {{#each interviewed}}
-                <div class="col">
-                    <div class="card h-100 assignment-card border-0 shadow-sm glass-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="badge bg-primary">Passed</span>
-                                <span class="text-muted small">Score: {{this.interviewScore}}</span>
-                            </div>
-                            <h5 class="card-title fw-bold mb-1">{{this.name}}</h5>
-                            <p class="card-text text-muted small mb-3">Trk: <span class="font-monospace">{{this.trackingNumber}}</span></p>
-                            
-                            <p class="card-text mb-3">
-                                <strong>Assigned Office:</strong><br>
-                                {{this.assignedOffice}}
-                            </p>
-                            
-                            <button class="btn btn-outline-primary w-100" onclick="printLetter('{{this.name}}', '{{this.assignedOffice}}', '{{formatDate this.interviewDate}}')">
-                                <i class="bi bi-printer"></i> Print Letter
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                {{else}}
-                <div class="col-12 text-center text-muted py-4">No assignment orders available.</div>
-                {{/each}}
+            <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tracking No.</th>
+                            <th>Applicant Name</th>
+                            <th>Assigned Office</th>
+                            <th>Score</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each assignmentOrders}}
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">{{this.trackingNumber}}</span></td>
+                            <td class="fw-medium">{{this.name}}</td>
+                            <td>{{this.assignedOffice}}</td>
+                            <td>{{this.interviewScore}}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary action-btn" onclick="printLetter('{{this.name}}', '{{this.assignedOffice}}', '{{formatDate this.interviewDate}}')">
+                                    <i class="bi bi-file-earmark-pdf"></i> Generate PDF
+                                </button>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No assignment orders available.</td></tr>
+                        {{/each}}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

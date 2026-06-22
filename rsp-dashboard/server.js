@@ -27,6 +27,11 @@ hbs.registerHelper('eq', function (a, b) {
     return a === b;
 });
 
+// Helper to check if all requirements are met
+hbs.registerHelper('allRequirementsMet', function(applicant) {
+    return applicant.req_pds && applicant.req_birthCert && applicant.req_tor;
+});
+
 // Helper for formatting date
 hbs.registerHelper('formatDate', function(date) {
     if (!date) return '';
@@ -37,18 +42,29 @@ hbs.registerHelper('formatDate', function(date) {
 // Routes
 app.get('/', async (req, res) => {
     try {
-        const [applicants] = await db.query('SELECT * FROM applicants ORDER BY createdAt DESC');
+        // Base query ordered by creation date ascending (first come first serve)
+        const [applicants] = await db.query('SELECT * FROM applicants ORDER BY createdAt ASC');
         
-        // Group applicants by status for different tabs
+        // Step 1: Pending, ordered by when added (ASC)
         const pending = applicants.filter(a => a.status === 'PENDING');
-        const qualified = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore === null);
-        const interviewed = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore !== null).sort((a, b) => b.interviewScore - a.interviewScore);
+        
+        // Step 2: Qualified for interview, ordered by closest interview date (ASC)
+        const qualified = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore === null)
+                                    .sort((a, b) => new Date(a.interviewDate) - new Date(b.interviewDate));
+        
+        // Step 3: Interviewed, ordered by score descending (highest first)
+        const interviewed = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore !== null)
+                                      .sort((a, b) => b.interviewScore - a.interviewScore);
+        
+        // Step 4: Assignment Orders, ordered by when added (first come first serve)
+        const assignmentOrders = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore !== null);
         
         res.render('index', { 
             applicants,
             pending,
             qualified,
-            interviewed
+            interviewed,
+            assignmentOrders
         });
     } catch (error) {
         console.error(error);
@@ -90,6 +106,36 @@ app.post('/api/applicants/:id/status', async (req, res) => {
         params.push(id);
         
         await db.query(query, params);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Toggle all requirements
+app.post('/api/applicants/:id/requirements/all', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { value } = req.body;
+        await db.query(`UPDATE applicants SET req_pds = ?, req_birthCert = ?, req_tor = ? WHERE id = ?`, [value, value, value, id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update applicant requirement boolean
+app.post('/api/applicants/:id/requirement', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { field, value } = req.body;
+        
+        const allowedFields = ['req_pds', 'req_birthCert', 'req_tor'];
+        if (!allowedFields.includes(field)) {
+            return res.status(400).json({ success: false, error: 'Invalid field' });
+        }
+        
+        await db.query(`UPDATE applicants SET ${field} = ? WHERE id = ?`, [value, id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

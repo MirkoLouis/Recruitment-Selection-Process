@@ -59,6 +59,38 @@ if (qualifyForm) {
     });
 }
 
+// Toggle All Requirements
+async function toggleAllRequirements(id, allCurrentlyMet) {
+    const newValue = allCurrentlyMet ? 0 : 1;
+    try {
+        const res = await fetch(`/api/applicants/${id}/requirements/all`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: newValue })
+        });
+        if (res.ok) window.location.reload();
+    } catch (err) {
+        console.error(err);
+        alert('Error updating requirements');
+    }
+}
+
+// Toggle Requirement
+async function toggleRequirement(id, field, currentValue) {
+    const newValue = currentValue ? 0 : 1;
+    try {
+        const res = await fetch(`/api/applicants/${id}/requirement`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field, value: newValue })
+        });
+        if (res.ok) window.location.reload();
+    } catch (err) {
+        console.error(err);
+        alert('Error updating requirement');
+    }
+}
+
 // Disqualify Applicant
 async function disqualifyApplicant(id) {
     if(confirm('Are you sure you want to disqualify this applicant?')) {
@@ -107,7 +139,7 @@ if (scoreForm) {
     });
 }
 
-// Print Letter
+// Generate PDF Letter
 function printLetter(name, office, dateStr) {
     // Populate the print container
     document.getElementById('printName').innerText = name;
@@ -118,6 +150,44 @@ function printLetter(name, office, dateStr) {
     const formattedDate = d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     document.getElementById('printDate').innerText = 'Date: ' + formattedDate;
     
-    // Trigger print
-    window.print();
+    // Clone the element for PDF generation so it doesn't flash on screen
+    const element = document.querySelector('.print-container').cloneNode(true);
+    element.classList.remove('d-none');
+    element.classList.remove('d-print-block');
+    element.style.display = 'block';
+    
+    // Set up html2pdf options
+    const opt = {
+        margin:       [20, 18, 20, 20],
+        filename:     `${name.replace(/\s+/g, '_')}_assignment_order.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Generate and download PDF
+    html2pdf().set(opt).from(element).save();
+}
+
+// Search Filter Logic
+function filterTable(input, tableId) {
+    const filter = input.value.toLowerCase();
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    
+    const trs = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let i = 0; i < trs.length; i++) {
+        // Skip empty placeholder rows (e.g., colspan messages)
+        if (trs[i].cells.length === 1 && trs[i].cells[0].hasAttribute('colspan')) {
+            continue;
+        }
+
+        const rowText = trs[i].textContent.toLowerCase();
+        if (rowText.includes(filter)) {
+            trs[i].style.display = '';
+        } else {
+            trs[i].style.display = 'none';
+        }
+    }
 }
