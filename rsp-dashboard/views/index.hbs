@@ -1,0 +1,280 @@
+{{> header}}
+
+<div class="glass-panel p-4 mb-5 shadow-sm rounded-4 d-print-none">
+    <h2 class="mb-4 fw-bold gradient-text">Process Overview</h2>
+    <!-- Nav Tabs -->
+    <ul class="nav nav-pills custom-tabs mb-4" id="rspTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="step1-tab" data-bs-toggle="tab" data-bs-target="#step1" type="button" role="tab">Step 1: Notice of Requirements</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="step2-tab" data-bs-toggle="tab" data-bs-target="#step2" type="button" role="tab">Step 2: Deliberation Sheet</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="step3-tab" data-bs-toggle="tab" data-bs-target="#step3" type="button" role="tab">Step 3: Comparative Assessments</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="step4-tab" data-bs-toggle="tab" data-bs-target="#step4" type="button" role="tab">Step 4: Assignment Orders</button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="rspTabContent">
+        <!-- STEP 1 -->
+        <div class="tab-pane fade show active" id="step1" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-semibold">Notice of Requirements</h4>
+                <button class="btn btn-primary btn-add-glass" data-bs-toggle="modal" data-bs-target="#addApplicantModal">
+                    <i class="bi bi-plus-lg"></i> Add Applicant
+                </button>
+            </div>
+            <p class="text-muted">Review incoming applicants and verify personal data sheet, birth certificate, and transcript of records.</p>
+            
+            <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Applicant Name</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each pending}}
+                        <tr>
+                            <td>{{inc @index}}</td>
+                            <td class="fw-medium">{{this.name}}</td>
+                            <td><span class="badge bg-warning text-dark">Pending</span></td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-success action-btn" onclick="openQualifyModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check-circle"></i> Qualify</button>
+                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="disqualifyApplicant({{this.id}})"><i class="bi bi-x-circle"></i> Disqualify</button>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="4" class="text-center text-muted py-4">No pending applicants found.</td></tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="tab-pane fade" id="step2" role="tabpanel">
+            <h4 class="fw-semibold mb-3">Deliberation & Interview Sheet</h4>
+            <p class="text-muted">Assess qualified applicants and input their interview scores (out of 100).</p>
+            
+            <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
+                <table class="table table-hover align-middle mb-0 custom-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tracking Number</th>
+                            <th>Applicant Name</th>
+                            <th>Interview Date</th>
+                            <th class="text-end">Interview Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each qualified}}
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">{{this.trackingNumber}}</span></td>
+                            <td class="fw-medium">{{this.name}}</td>
+                            <td>{{formatDate this.interviewDate}}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-info text-white action-btn" onclick="openScoreModal({{this.id}}, '{{this.name}}')">
+                                    <i class="bi bi-clipboard-data"></i> Input Score
+                                </button>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="4" class="text-center text-muted py-4">No applicants await interviews.</td></tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="tab-pane fade" id="step3" role="tabpanel">
+            <h4 class="fw-semibold mb-3">Comparative Assessments</h4>
+            <p class="text-muted">Leaderboard of assessed applicants ranked by their interview scores.</p>
+            
+            <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
+                <table class="table table-hover align-middle mb-0 custom-table leaderboard">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Rank</th>
+                            <th>Tracking No.</th>
+                            <th>Applicant Name</th>
+                            <th>Interview Score</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each interviewed}}
+                        <tr>
+                            <td class="fw-bold text-primary">#{{inc @index}}</td>
+                            <td><span class="badge bg-secondary font-monospace">{{this.trackingNumber}}</span></td>
+                            <td class="fw-medium">{{this.name}}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold">{{this.interviewScore}}</span>
+                                    <div class="progress flex-grow-1" style="height: 6px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{this.interviewScore}}%;" aria-valuenow="{{this.interviewScore}}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="badge bg-success">Assessed</span></td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="5" class="text-center text-muted py-4">No comparative data available yet.</td></tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="tab-pane fade" id="step4" role="tabpanel">
+            <h4 class="fw-semibold mb-3">Assignment Orders</h4>
+            <p class="text-muted">Finalized applicants ready for assignment. Print assignment letters here.</p>
+            
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {{#each interviewed}}
+                <div class="col">
+                    <div class="card h-100 assignment-card border-0 shadow-sm glass-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="badge bg-primary">Passed</span>
+                                <span class="text-muted small">Score: {{this.interviewScore}}</span>
+                            </div>
+                            <h5 class="card-title fw-bold mb-1">{{this.name}}</h5>
+                            <p class="card-text text-muted small mb-3">Trk: <span class="font-monospace">{{this.trackingNumber}}</span></p>
+                            
+                            <p class="card-text mb-3">
+                                <strong>Assigned Office:</strong><br>
+                                {{this.assignedOffice}}
+                            </p>
+                            
+                            <button class="btn btn-outline-primary w-100" onclick="printLetter('{{this.name}}', '{{this.assignedOffice}}', '{{formatDate this.interviewDate}}')">
+                                <i class="bi bi-printer"></i> Print Letter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {{else}}
+                <div class="col-12 text-center text-muted py-4">No assignment orders available.</div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals (Hidden from print) -->
+<div class="d-print-none">
+    <!-- Add Applicant Modal -->
+    <div class="modal fade glass-modal" id="addApplicantModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">New Applicant</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addApplicantForm">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="applicantName" required placeholder="e.g. John Doe">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Submit Application</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Qualify Modal -->
+    <div class="modal fade glass-modal" id="qualifyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Qualify Applicant</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="qualifyForm">
+                        <input type="hidden" id="qualifyId">
+                        <p>Qualifying <strong id="qualifyName" class="text-primary"></strong></p>
+                        <div class="mb-3">
+                            <label class="form-label">Assign Interview Date</label>
+                            <input type="date" class="form-control" id="interviewDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Confirm Qualification</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Modal -->
+    <div class="modal fade glass-modal" id="scoreModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Input Interview Score</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="scoreForm">
+                        <input type="hidden" id="scoreId">
+                        <p>Applicant: <strong id="scoreName" class="text-info"></strong></p>
+                        <div class="mb-3">
+                            <label class="form-label">Score (0-100)</label>
+                            <input type="number" class="form-control form-control-lg text-center fw-bold fs-3" id="interviewScore" min="0" max="100" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">Assign Office / School</label>
+                            <input type="text" class="form-control" id="assignedOffice" required placeholder="e.g. IT Department">
+                        </div>
+                        <button type="submit" class="btn btn-info text-white w-100">Submit Assessment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print Only Section (Assignment Letter) -->
+<div class="d-none d-print-block print-container">
+    <div class="print-header">
+        <h1>RECRUITMENT & ASSIGNMENT OFFICE</h1>
+        <p>123 Official Boulevard, Tech City</p>
+        <hr>
+    </div>
+    <div class="print-body">
+        <div class="date-field" id="printDate">Date: [Date]</div>
+        <div class="subject">SUBJECT: NOTICE OF ASSIGNMENT</div>
+        
+        <p>Dear <strong id="printName">[Name]</strong>,</p>
+        
+        <p>We are pleased to inform you that you have successfully passed the Recruitment Selection Process. Based on your comparative assessment and interview deliberation, you have met the rigorous standards of our institution.</p>
+        
+        <p>Effective immediately, you are hereby given this assignment order to report to your designated office:</p>
+        
+        <div class="assigned-office-box">
+            <h2 id="printOffice">[Assigned Office]</h2>
+        </div>
+        
+        <p>Please report to the HR Department within five (5) working days from the receipt of this letter to complete your onboarding process.</p>
+        
+        <p>Congratulations, and we look forward to your contributions.</p>
+        
+        <br><br><br>
+        <div class="signature">
+            <p>___________________________</p>
+            <p><strong>Chief Recruitment Officer</strong></p>
+        </div>
+    </div>
+</div>
+
+{{> footer}}
