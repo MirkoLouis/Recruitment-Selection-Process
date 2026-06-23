@@ -3,22 +3,43 @@ const addApplicantForm = document.getElementById('addApplicantForm');
 const qualifyForm = document.getElementById('qualifyForm');
 const scoreForm = document.getElementById('scoreForm');
 
-// Helper for generating tracking numbers
-const generateTrackingNumber = () => {
-    return 'RSP-' + Math.random().toString(36).substr(2, 6).toUpperCase();
-};
+// Wizard Navigation
+function nextWizardStep(step) {
+    if (step === 1) {
+        if (!document.getElementById('applicantDistrict').value) return alert('Please select a district.');
+        document.getElementById('wizardStep1').classList.add('d-none');
+        document.getElementById('wizardStep2').classList.remove('d-none');
+    } else if (step === 2) {
+        if (!document.getElementById('applicantCategory').value) return alert('Please select a category.');
+        document.getElementById('wizardStep2').classList.add('d-none');
+        document.getElementById('wizardStep3').classList.remove('d-none');
+    }
+}
 
-// Add Applicant
+function prevWizardStep(step) {
+    if (step === 2) {
+        document.getElementById('wizardStep2').classList.add('d-none');
+        document.getElementById('wizardStep1').classList.remove('d-none');
+    } else if (step === 3) {
+        document.getElementById('wizardStep3').classList.add('d-none');
+        document.getElementById('wizardStep2').classList.remove('d-none');
+    }
+}
+
+// Add Applicant via Wizard
 if (addApplicantForm) {
     addApplicantForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('applicantName').value;
+        const district = document.getElementById('applicantDistrict').value;
+        const category = document.getElementById('applicantCategory').value;
+        const firstName = document.getElementById('applicantFirstName').value;
+        const lastName = document.getElementById('applicantLastName').value;
         
         try {
             const res = await fetch('/api/applicants', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ firstName, lastName, district, category })
             });
             if (res.ok) window.location.reload();
         } catch (err) {
@@ -26,6 +47,15 @@ if (addApplicantForm) {
             alert('Error adding applicant');
         }
     });
+}
+
+// Delete entire Applicant
+async function deleteApplicant(id) {
+    if(!confirm('Are you sure you want to permanently delete this applicant and all their records?')) return;
+    try {
+        const res = await fetch(`/api/applicants/${id}`, { method: 'DELETE' });
+        if(res.ok) window.location.reload();
+    } catch(err) { console.error(err); }
 }
 
 // Open Qualify Modal
@@ -43,13 +73,12 @@ if (qualifyForm) {
         e.preventDefault();
         const id = document.getElementById('qualifyId').value;
         const interviewDate = document.getElementById('interviewDate').value;
-        const trackingNumber = generateTrackingNumber();
         
         try {
-            const res = await fetch(`/api/applicants/${id}/status`, {
+            const res = await fetch(`/api/applicants/${id}/qualify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'QUALIFIED', interviewDate, trackingNumber })
+                body: JSON.stringify({ interviewDate })
             });
             if (res.ok) window.location.reload();
         } catch (err) {
@@ -59,46 +88,13 @@ if (qualifyForm) {
     });
 }
 
-// Toggle All Requirements
-async function toggleAllRequirements(id, allCurrentlyMet) {
-    const newValue = allCurrentlyMet ? 0 : 1;
-    try {
-        const res = await fetch(`/api/applicants/${id}/requirements/all`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ value: newValue })
-        });
-        if (res.ok) window.location.reload();
-    } catch (err) {
-        console.error(err);
-        alert('Error updating requirements');
-    }
-}
-
-// Toggle Requirement
-async function toggleRequirement(id, field, currentValue) {
-    const newValue = currentValue ? 0 : 1;
-    try {
-        const res = await fetch(`/api/applicants/${id}/requirement`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ field, value: newValue })
-        });
-        if (res.ok) window.location.reload();
-    } catch (err) {
-        console.error(err);
-        alert('Error updating requirement');
-    }
-}
-
 // Disqualify Applicant
 async function disqualifyApplicant(id) {
     if(confirm('Are you sure you want to disqualify this applicant?')) {
         try {
-            const res = await fetch(`/api/applicants/${id}/status`, {
+            const res = await fetch(`/api/applicants/${id}/disqualify`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'DISQUALIFIED' })
+                headers: { 'Content-Type': 'application/json' }
             });
             if (res.ok) window.location.reload();
         } catch (err) {
@@ -119,17 +115,16 @@ if (scoreForm) {
     scoreForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('scoreId').value;
-        const interviewScore = document.getElementById('interviewScore').value;
-        const assignedOffice = document.getElementById('assignedOffice').value;
+        const score = document.getElementById('interviewScore').value;
+        const office = document.getElementById('assignedOffice').value;
         
         try {
             const res = await fetch(`/api/applicants/${id}/score`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ interviewScore, assignedOffice })
+                body: JSON.stringify({ score, office })
             });
             if (res.ok) {
-                // To show the change without reloading, we could manipulate DOM, but reload is safer to sort
                 window.location.reload();
             }
         } catch (err) {
@@ -178,11 +173,9 @@ function filterTable(input, tableId) {
     const trs = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
 
     for (let i = 0; i < trs.length; i++) {
-        // Skip empty placeholder rows (e.g., colspan messages)
         if (trs[i].cells.length === 1 && trs[i].cells[0].hasAttribute('colspan')) {
             continue;
         }
-
         const rowText = trs[i].textContent.toLowerCase();
         if (rowText.includes(filter)) {
             trs[i].style.display = '';
@@ -190,4 +183,310 @@ function filterTable(input, tableId) {
             trs[i].style.display = 'none';
         }
     }
+}
+
+// ==========================================
+// NEW WORKFLOW & MODAL FUNCTIONS
+// ==========================================
+
+async function proceedToRequirements(id) {
+    try {
+        const res = await fetch(`/api/applicants/${id}/proceed-requirements`, { method: 'POST' });
+        if (res.ok) window.location.reload();
+    } catch(err) { console.error(err); }
+}
+
+async function toggleAssignmentReq(id, currentStatus) {
+    const newStatus = currentStatus === 'COMPLETE' ? 'INCOMPLETE' : 'COMPLETE';
+    try {
+        const res = await fetch(`/api/applicants/${id}/toggle-assignment-req`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+        if (res.ok) window.location.reload();
+    } catch(err) { console.error(err); }
+}
+
+const assignForm = document.getElementById('assignForm');
+if (assignForm) {
+    assignForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('assignId').value;
+        const office = document.getElementById('assignedOffice').value;
+        try {
+            const res = await fetch(`/api/applicants/${id}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ office })
+            });
+            if (res.ok) window.location.reload();
+        } catch(err) { console.error(err); }
+    });
+}
+
+function openAssignModal(id, name) {
+    document.getElementById('assignId').value = id;
+    document.getElementById('assignName').innerText = name;
+    document.getElementById('assignedOffice').value = '';
+    new bootstrap.Modal(document.getElementById('assignModal')).show();
+}
+
+async function fetchDetails(id) {
+    const res = await fetch(`/api/applicants/${id}/details`);
+    if (!res.ok) throw new Error('Failed to fetch details');
+    return await res.json();
+}
+
+// Reusable deleter
+async function deleteRecord(type, recordId, applicantId, modalType) {
+    if(!confirm('Delete this record?')) return;
+    try {
+        const res = await fetch(`/api/${type}/${recordId}`, { method: 'DELETE' });
+        if(res.ok) {
+            if (modalType === 'edu') openEduModal(applicantId);
+            else if (modalType === 'train') openTrainModal(applicantId);
+            else if (modalType === 'exp') openExpModal(applicantId);
+            else if (modalType === 'elig') openEligModal(applicantId);
+            else window.location.reload();
+        }
+    } catch(err) { console.error(err); }
+}
+
+async function openInfoModal(id) {
+    try {
+        const data = await fetchDetails(id);
+        const app = data.applicant;
+        document.getElementById('infoModalBody').innerHTML = `
+            <form id="infoForm-${id}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control" name="firstName" value="${app.firstName || ''}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control" name="lastName" value="${app.lastName || ''}" required>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-control" name="address" value="${app.address || ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Age</label>
+                        <input type="number" class="form-control" name="age" value="${app.age || ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sex</label>
+                        <select class="form-select" name="sex">
+                            <option value="">Select...</option>
+                            <option value="Male" ${app.sex==='Male'?'selected':''}>Male</option>
+                            <option value="Female" ${app.sex==='Female'?'selected':''}>Female</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Civil Status</label>
+                        <input type="text" class="form-control" name="civilStatus" value="${app.civilStatus || ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Religion</label>
+                        <input type="text" class="form-control" name="religion" value="${app.religion || ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Disability</label>
+                        <input type="text" class="form-control" name="disability" value="${app.disability || ''}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Ethnic Group</label>
+                        <input type="text" class="form-control" name="ethnicGroup" value="${app.ethnicGroup || ''}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="emailAddress" value="${app.emailAddress || ''}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Contact No</label>
+                        <input type="text" class="form-control" name="contactNo" value="${app.contactNo || ''}">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 mt-4">Save Information</button>
+            </form>
+        `;
+        
+        document.getElementById(`infoForm-${id}`).addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const body = Object.fromEntries(formData.entries());
+            try {
+                const res = await fetch(`/api/applicants/${id}/info`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if(res.ok) {
+                    const nameCells = document.querySelectorAll('.applicant-name-display-' + id);
+                    if (nameCells.length) {
+                        nameCells.forEach(cell => cell.innerText = `${body.firstName} ${body.lastName}`);
+                    }
+                    openInfoModal(id);
+                }
+            } catch(err) { console.error(err); }
+        });
+        
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('infoModal')).show();
+    } catch (err) { alert(err.message); }
+}
+
+async function openEduModal(id) {
+    try {
+        const data = await fetchDetails(id);
+        const edu = data.education;
+        let html = '<ul class="list-group mb-3">';
+        if(edu.length) {
+            edu.forEach(e => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="${e.digitalCopyLink}" target="_blank">${e.digitalCopyLink}</a>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteRecord('education', ${e.id}, ${id}, 'edu')"><i class="bi bi-trash"></i></button>
+                </li>`;
+            });
+        } else html += '<li class="list-group-item text-muted">No education records found.</li>';
+        html += '</ul>';
+        html += `
+            <form id="addEdu-${id}" class="d-flex gap-2">
+                <input type="url" class="form-control" name="link" placeholder="https://link-to-document" required>
+                <button type="submit" class="btn btn-success">Add</button>
+            </form>
+        `;
+        document.getElementById('eduModalBody').innerHTML = html;
+        
+        document.getElementById(`addEdu-${id}`).addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch(`/api/applicants/${id}/education`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link: e.target.link.value })
+                });
+                if(res.ok) openEduModal(id);
+            } catch(err) { console.error(err); }
+        });
+        
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('eduModal')).show();
+    } catch (err) { alert(err.message); }
+}
+
+async function openTrainModal(id) {
+    try {
+        const data = await fetchDetails(id);
+        const train = data.training;
+        let html = '<ul class="list-group mb-3">';
+        if(train.length) {
+            train.forEach(t => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><strong>${t.title}</strong> (${t.hours} hours)</span>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteRecord('training', ${t.id}, ${id}, 'train')"><i class="bi bi-trash"></i></button>
+                </li>`;
+            });
+        } else html += '<li class="list-group-item text-muted">No training seminars found.</li>';
+        html += '</ul>';
+        html += `
+            <form id="addTrain-${id}" class="d-flex gap-2">
+                <input type="text" class="form-control" name="title" placeholder="Title" required>
+                <input type="number" class="form-control" name="hours" placeholder="Hrs" style="max-width: 80px;" required>
+                <button type="submit" class="btn btn-success">Add</button>
+            </form>
+        `;
+        document.getElementById('trainModalBody').innerHTML = html;
+        
+        document.getElementById(`addTrain-${id}`).addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch(`/api/applicants/${id}/training`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: e.target.title.value, hours: e.target.hours.value })
+                });
+                if(res.ok) openTrainModal(id);
+            } catch(err) { console.error(err); }
+        });
+        
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('trainModal')).show();
+    } catch (err) { alert(err.message); }
+}
+
+async function openExpModal(id) {
+    try {
+        const data = await fetchDetails(id);
+        const exp = data.experience;
+        let html = '<ul class="list-group mb-3">';
+        if(exp.length) {
+            exp.forEach(e => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><strong>${e.details}</strong> (${e.years} years)</span>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteRecord('experience', ${e.id}, ${id}, 'exp')"><i class="bi bi-trash"></i></button>
+                </li>`;
+            });
+        } else html += '<li class="list-group-item text-muted">No experience records found.</li>';
+        html += '</ul>';
+        html += `
+            <form id="addExp-${id}" class="d-flex gap-2">
+                <input type="text" class="form-control" name="details" placeholder="Details" required>
+                <input type="number" class="form-control" name="years" placeholder="Yrs" style="max-width: 80px;" required>
+                <button type="submit" class="btn btn-success">Add</button>
+            </form>
+        `;
+        document.getElementById('expModalBody').innerHTML = html;
+        
+        document.getElementById(`addExp-${id}`).addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch(`/api/applicants/${id}/experience`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ details: e.target.details.value, years: e.target.years.value })
+                });
+                if(res.ok) openExpModal(id);
+            } catch(err) { console.error(err); }
+        });
+        
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('expModal')).show();
+    } catch (err) { alert(err.message); }
+}
+
+async function openEligModal(id) {
+    try {
+        const data = await fetchDetails(id);
+        const elig = data.eligibility;
+        let html = '<ul class="list-group mb-3">';
+        if(elig.length) {
+            elig.forEach(e => {
+                html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="${e.digitalCopyLink}" target="_blank">${e.digitalCopyLink}</a>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteRecord('eligibility', ${e.id}, ${id}, 'elig')"><i class="bi bi-trash"></i></button>
+                </li>`;
+            });
+        } else html += '<li class="list-group-item text-muted">No eligibility records found.</li>';
+        html += '</ul>';
+        html += `
+            <form id="addElig-${id}" class="d-flex gap-2">
+                <input type="url" class="form-control" name="link" placeholder="https://link-to-document" required>
+                <button type="submit" class="btn btn-success">Add</button>
+            </form>
+        `;
+        document.getElementById('eligModalBody').innerHTML = html;
+        
+        document.getElementById(`addElig-${id}`).addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const res = await fetch(`/api/applicants/${id}/eligibility`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ link: e.target.link.value })
+                });
+                if(res.ok) openEligModal(id);
+            } catch(err) { console.error(err); }
+        });
+        
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('eligModal')).show();
+    } catch (err) { alert(err.message); }
 }

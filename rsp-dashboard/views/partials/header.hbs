@@ -9,42 +9,50 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/css/style.css">
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/bootstrap-icons/bootstrap-icons.css">
 </head>
 <body>
-    <nav class="navbar navbar-dark premium-nav sticky-top">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <!-- Left Side: Brand -->
-            <a class="navbar-brand d-flex align-items-center gap-2 m-0" href="/">
-                <i class="bi bi-briefcase text-primary fs-3"></i>
-                <span class="fw-bold">RSP Dashboard</span>
+    <div class="d-flex" style="min-height: 100vh;">
+        <!-- Sidebar -->
+        <nav class="sidebar premium-nav text-white d-flex flex-column p-4 flex-shrink-0 shadow-lg" style="width: 280px; z-index: 1000;">
+            <a href="/" class="d-flex align-items-center mb-4 text-white text-decoration-none">
+                <i class="bi bi-briefcase-fill text-primary fs-2 me-3"></i>
+                <span class="fs-4 fw-bold">RSP Dashboard</span>
             </a>
             
-            <!-- Center: Nav Tabs -->
-            <ul class="nav nav-pills custom-tabs m-0" id="rspTab" role="tablist">
+            <ul class="nav nav-pills flex-column mb-auto custom-sidebar-tabs gap-2" id="rspTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="step1-tab" data-bs-toggle="tab" data-bs-target="#step1" type="button" role="tab">Step 1: Notice of Requirements</button>
+                    <button class="nav-link active text-white w-100 text-start p-3 rounded-3" id="step1-tab" data-bs-toggle="tab" data-bs-target="#step1" type="button" role="tab">
+                        <i class="bi bi-person-vcard fs-5 me-2 align-middle"></i> <span class="align-middle">Step 1: Evaluation</span>
+                    </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="step2-tab" data-bs-toggle="tab" data-bs-target="#step2" type="button" role="tab">Step 2: Deliberation Sheet</button>
+                    <button class="nav-link text-white w-100 text-start p-3 rounded-3" id="step2-tab" data-bs-toggle="tab" data-bs-target="#step2" type="button" role="tab">
+                        <i class="bi bi-chat-square-text fs-5 me-2 align-middle"></i> <span class="align-middle">Step 2: Deliberation</span>
+                    </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="step3-tab" data-bs-toggle="tab" data-bs-target="#step3" type="button" role="tab">Step 3: Comparative Assessments</button>
+                    <button class="nav-link text-white w-100 text-start p-3 rounded-3" id="step3-tab" data-bs-toggle="tab" data-bs-target="#step3" type="button" role="tab">
+                        <i class="bi bi-bar-chart-steps fs-5 me-2 align-middle"></i> <span class="align-middle">Step 3: Assessments</span>
+                    </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="step4-tab" data-bs-toggle="tab" data-bs-target="#step4" type="button" role="tab">Step 4: Assignment Orders</button>
+                    <button class="nav-link text-white w-100 text-start p-3 rounded-3" id="step4-tab" data-bs-toggle="tab" data-bs-target="#step4" type="button" role="tab">
+                        <i class="bi bi-card-checklist fs-5 me-2 align-middle"></i> <span class="align-middle">Step 4: Requirements</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-white w-100 text-start p-3 rounded-3" id="step5-tab" data-bs-toggle="tab" data-bs-target="#step5" type="button" role="tab">
+                        <i class="bi bi-envelope-paper fs-5 me-2 align-middle"></i> <span class="align-middle">Step 5: Assignments</span>
+                    </button>
                 </li>
             </ul>
-
-            <!-- Right Side: Invisible Spacer identical to brand to force exact center -->
-            <div class="navbar-brand d-flex align-items-center gap-2 m-0" style="visibility: hidden;" aria-hidden="true">
-                <i class="bi bi-layers-half fs-3"></i>
-                <span class="fw-bold">RSP Dashboard</span>
-            </div>
-        </div>
-    </nav>
-    <main class="container py-5 main-content">
+        </nav>
+        
+        <!-- Main Content Wrapper -->
+        <main class="flex-grow-1 p-5 main-content" style="height: 100vh; overflow-y: auto; background-color: #f8fafc;">
+            <div class="container-fluid max-w-1200 mx-auto">

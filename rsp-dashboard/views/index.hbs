@@ -6,7 +6,7 @@
         <!-- STEP 1 -->
         <div class="tab-pane fade show active" id="step1" role="tabpanel">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="fw-semibold">Notice of Requirements</h2>
+                <h2 class="fw-semibold">Initial Evaluation</h2>
                 <button class="btn btn-primary btn-add-glass" data-bs-toggle="modal" data-bs-target="#addApplicantModal">
                     <i class="bi bi-plus-lg"></i> Add Applicant
                 </button>
@@ -24,41 +24,46 @@
                 <table class="table table-hover align-middle mb-0 custom-table" id="table-step1">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th>Application Code</th>
                             <th>Applicant Name</th>
-                            <th class="text-center">Check All</th>
-                            <th class="text-center">PDS</th>
-                            <th class="text-center">Birth Cert</th>
-                            <th class="text-center">TOR</th>
-                            <th>Status</th>
+                            <th class="text-center">Info</th>
+                            <th class="text-center">Edu</th>
+                            <th class="text-center">Train</th>
+                            <th class="text-center">Exp</th>
+                            <th class="text-center">Elig</th>
+                            <th>Remarks</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {{#each pending}}
+                        {{#each step1}}
                         <tr>
-                            <td>{{inc @index}}</td>
-                            <td class="fw-medium">{{this.name}}</td>
-                            <td class="text-center">
-                                <i class="bi fs-5 cursor-pointer bi-check-all text-primary" onclick="toggleAllRequirements({{this.id}}, {{#if (allRequirementsMet this)}}true{{else}}false{{/if}})" title="Toggle all requirements"></i>
+                            <td><span class="badge bg-secondary font-monospace">{{this.applicationCode}}</span></td>
+                            <td class="fw-medium applicant-name-display-{{this.id}}">{{this.name}}</td>
+                            <td class="text-center"><button class="btn btn-sm btn-outline-primary" onclick="openInfoModal({{this.id}})" title="Personal Info"><i class="bi bi-person-lines-fill"></i></button></td>
+                            <td class="text-center"><button class="btn btn-sm btn-outline-info" onclick="openEduModal({{this.id}})" title="Education"><i class="bi bi-mortarboard-fill"></i></button></td>
+                            <td class="text-center"><button class="btn btn-sm btn-outline-warning" onclick="openTrainModal({{this.id}})" title="Training"><i class="bi bi-award-fill"></i></button></td>
+                            <td class="text-center"><button class="btn btn-sm btn-outline-success" onclick="openExpModal({{this.id}})" title="Experience"><i class="bi bi-briefcase-fill"></i></button></td>
+                            <td class="text-center"><button class="btn btn-sm btn-outline-secondary" onclick="openEligModal({{this.id}})" title="Eligibility"><i class="bi bi-shield-check"></i></button></td>
+                            <td>
+                                {{#if (eq this.status 'QUALIFIED')}}
+                                    <span class="badge bg-success">Qualified</span>
+                                {{else if (eq this.status 'DISQUALIFIED')}}
+                                    <span class="badge bg-danger">Disqualified</span>
+                                {{else}}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {{/if}}
                             </td>
-                            <td class="text-center">
-                                <i class="bi fs-5 cursor-pointer {{#if this.req_pds}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_pds', {{this.req_pds}})"></i>
-                            </td>
-                            <td class="text-center">
-                                <i class="bi fs-5 cursor-pointer {{#if this.req_birthCert}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_birthCert', {{this.req_birthCert}})"></i>
-                            </td>
-                            <td class="text-center">
-                                <i class="bi fs-5 cursor-pointer {{#if this.req_tor}}bi-check-circle-fill text-success{{else}}bi-x-circle-fill text-danger{{/if}}" onclick="toggleRequirement({{this.id}}, 'req_tor', {{this.req_tor}})"></i>
-                            </td>
-                            <td><span class="badge bg-warning text-dark">Pending</span></td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-success action-btn" {{#unless (allRequirementsMet this)}}disabled title="Check all requirements first"{{/unless}} onclick="openQualifyModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check-circle"></i> Qualify</button>
-                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="disqualifyApplicant({{this.id}})"><i class="bi bi-x-circle"></i> Disqualify</button>
+                                {{#if (eq this.status 'PENDING')}}
+                                <button class="btn btn-sm btn-success action-btn" onclick="openQualifyModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check-circle"></i> Qualify</button>
+                                <button class="btn btn-sm btn-warning action-btn ms-1" onclick="disqualifyApplicant({{this.id}})"><i class="bi bi-x-circle"></i> Disqualify</button>
+                                {{/if}}
+                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="deleteApplicant({{this.id}})"><i class="bi bi-trash"></i> Delete</button>
                             </td>
                         </tr>
                         {{else}}
-                        <tr><td colspan="8" class="text-center text-muted py-4">No pending applicants found.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">No initial evaluation applicants found.</td></tr>
                         {{/each}}
                     </tbody>
                 </table>
@@ -81,22 +86,23 @@
                 <table class="table table-hover align-middle mb-0 custom-table" id="table-step2">
                     <thead class="table-light">
                         <tr>
-                            <th>Tracking Number</th>
+                            <th>Application Code</th>
                             <th>Applicant Name</th>
                             <th>Interview Date</th>
                             <th class="text-end">Interview Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {{#each qualified}}
+                        {{#each step2}}
                         <tr>
-                            <td><span class="badge bg-secondary font-monospace">{{this.trackingNumber}}</span></td>
-                            <td class="fw-medium">{{this.name}}</td>
+                            <td><span class="badge bg-secondary font-monospace">{{this.applicationCode}}</span></td>
+                            <td class="fw-medium applicant-name-display-{{this.id}}">{{this.name}}</td>
                             <td>{{formatDate this.interviewDate}}</td>
                             <td class="text-end">
                                 <button class="btn btn-sm btn-info text-white action-btn" onclick="openScoreModal({{this.id}}, '{{this.name}}')">
                                     <i class="bi bi-clipboard-data"></i> Input Score
                                 </button>
+                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="deleteApplicant({{this.id}})"><i class="bi bi-trash"></i> Delete</button>
                             </td>
                         </tr>
                         {{else}}
@@ -124,18 +130,19 @@
                     <thead class="table-light">
                         <tr>
                             <th>Rank</th>
-                            <th>Tracking No.</th>
+                            <th>Application Code</th>
                             <th>Applicant Name</th>
                             <th>Interview Score</th>
                             <th>Status</th>
+                            <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {{#each interviewed}}
+                        {{#each step3}}
                         <tr>
                             <td class="fw-bold text-primary">#{{inc @index}}</td>
-                            <td><span class="badge bg-secondary font-monospace">{{this.trackingNumber}}</span></td>
-                            <td class="fw-medium">{{this.name}}</td>
+                            <td><span class="badge bg-secondary font-monospace">{{this.applicationCode}}</span></td>
+                            <td class="fw-medium applicant-name-display-{{this.id}}">{{this.name}}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="fw-bold">{{this.interviewScore}}</span>
@@ -145,9 +152,15 @@
                                 </div>
                             </td>
                             <td><span class="badge bg-success">Assessed</span></td>
+                            <td class="text-end">
+                                {{#if (eq this.status 'ASSESSED')}}
+                                <button class="btn btn-sm btn-primary action-btn" onclick="proceedToRequirements({{this.id}})"><i class="bi bi-arrow-right-circle"></i> Move to Step 4</button>
+                                {{/if}}
+                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="deleteApplicant({{this.id}})"><i class="bi bi-trash"></i> Delete</button>
+                            </td>
                         </tr>
                         {{else}}
-                        <tr><td colspan="5" class="text-center text-muted py-4">No comparative data available yet.</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-4">No comparative data available yet.</td></tr>
                         {{/each}}
                     </tbody>
                 </table>
@@ -156,7 +169,7 @@
 
         <!-- STEP 4 -->
         <div class="tab-pane fade" id="step4" role="tabpanel">
-            <h4 class="fw-semibold mb-3">Assignment Orders</h4>
+            <h4 class="fw-semibold mb-3">Notice of Requirements</h4>
             <p class="text-muted">Finalized applicants ready for assignment. Generate assignment letters here.</p>
             
             <div class="mb-3">
@@ -170,7 +183,56 @@
                 <table class="table table-hover align-middle mb-0 custom-table" id="table-step4">
                     <thead class="table-light">
                         <tr>
-                            <th>Tracking No.</th>
+                            <th>Application Code</th>
+                            <th>Applicant Name</th>
+                            <th>Assigned Office</th>
+                            <th>Score</th>
+                            <th class="text-center">Requirements</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each step4}}
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">{{this.applicationCode}}</span></td>
+                            <td class="fw-medium applicant-name-display-{{this.id}}">{{this.name}}</td>
+                            <td>{{this.assignedOffice}}</td>
+                            <td>{{this.interviewScore}}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm {{#if (eq this.assignmentReqStatus 'COMPLETE')}}btn-success{{else}}btn-outline-warning{{/if}}" onclick="toggleAssignmentReq({{this.id}}, '{{this.assignmentReqStatus}}')">
+                                    {{#if (eq this.assignmentReqStatus 'COMPLETE')}}<i class="bi bi-check-circle-fill"></i> Complete{{else}}<i class="bi bi-circle"></i> Incomplete{{/if}}
+                                </button>
+                            </td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-success action-btn" {{#if (eq this.assignmentReqStatus 'INCOMPLETE')}}disabled title="Requirements must be complete"{{/if}} onclick="openAssignModal({{this.id}}, '{{this.name}}')"><i class="bi bi-check2-all"></i> Assign</button>
+                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="deleteApplicant({{this.id}})"><i class="bi bi-trash"></i> Delete</button>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No applicants waiting for requirements.</td></tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div class="tab-pane fade" id="step5" role="tabpanel">
+            <h4 class="fw-semibold mb-3">Assignment Orders</h4>
+            <p class="text-muted">Finalized applicants ready for assignment. Generate assignment letters here.</p>
+            
+            <div class="mb-3">
+                <div class="input-group glass-panel">
+                    <span class="input-group-text bg-transparent border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-transparent border-0 shadow-none" placeholder="Search by name or tracking number..." onkeyup="filterTable(this, 'table-step5')">
+                </div>
+            </div>
+
+            <div class="table-responsive rounded-3 overflow-hidden shadow-sm">
+                <table class="table table-hover align-middle mb-0 custom-table" id="table-step5">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Application Code</th>
                             <th>Applicant Name</th>
                             <th>Assigned Office</th>
                             <th>Score</th>
@@ -178,16 +240,17 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{#each assignmentOrders}}
+                        {{#each step5}}
                         <tr>
-                            <td><span class="badge bg-secondary font-monospace">{{this.trackingNumber}}</span></td>
-                            <td class="fw-medium">{{this.name}}</td>
+                            <td><span class="badge bg-secondary font-monospace">{{this.applicationCode}}</span></td>
+                            <td class="fw-medium applicant-name-display-{{this.id}}">{{this.name}}</td>
                             <td>{{this.assignedOffice}}</td>
                             <td>{{this.interviewScore}}</td>
                             <td class="text-end">
                                 <button class="btn btn-sm btn-outline-primary action-btn" onclick="printLetter('{{this.name}}', '{{this.assignedOffice}}', '{{formatDate this.interviewDate}}')">
                                     <i class="bi bi-file-earmark-pdf"></i> Generate PDF
                                 </button>
+                                <button class="btn btn-sm btn-danger action-btn ms-1" onclick="deleteApplicant({{this.id}})"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>
                         {{else}}
@@ -207,16 +270,71 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0">
                 <div class="modal-header border-bottom-0 pb-0">
-                    <h5 class="modal-title fw-bold">New Applicant</h5>
+                    <h5 class="modal-title fw-bold">New Applicant Wizard</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="addApplicantForm">
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="applicantName" required placeholder="e.g. John Doe">
+                        <!-- Step 1: District -->
+                        <div id="wizardStep1">
+                            <h6 class="mb-3">Step 1: Select District</h6>
+                            <div class="mb-3">
+                                <select class="form-select" id="applicantDistrict" required>
+                                    <option value="">Select District...</option>
+                                    <option value="N1">N1</option>
+                                    <option value="N2">N2</option>
+                                    <option value="N3">N3</option>
+                                    <option value="W1">W1</option>
+                                    <option value="W2">W2</option>
+                                    <option value="W3">W3</option>
+                                    <option value="E1">E1</option>
+                                    <option value="E2">E2</option>
+                                    <option value="S1">S1</option>
+                                    <option value="S2">S2</option>
+                                </select>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="button" class="btn btn-primary" onclick="nextWizardStep(1)">Next</button>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Submit Application</button>
+
+                        <!-- Step 2: Category -->
+                        <div id="wizardStep2" class="d-none">
+                            <h6 class="mb-3">Step 2: Select Category</h6>
+                            <div class="mb-3">
+                                <select class="form-select" id="applicantCategory" required>
+                                    <option value="">Select Category...</option>
+                                    <option value="ELEM">ELEM</option>
+                                    <option value="HIGH">HIGH</option>
+                                    <option value="SENHIGH">SENHIGH</option>
+                                    <option value="UNIV">UNIV</option>
+                                    <option value="KINDER">KINDER</option>
+                                </select>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="prevWizardStep(2)">Back</button>
+                                <button type="button" class="btn btn-primary" onclick="nextWizardStep(2)">Next</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Name -->
+                        <div id="wizardStep3" class="d-none">
+                            <h6 class="mb-3">Step 3: Applicant Details</h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-control" id="applicantFirstName" required placeholder="e.g. John">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-control" id="applicantLastName" required placeholder="e.g. Doe">
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="prevWizardStep(3)">Back</button>
+                                <button type="submit" class="btn btn-success">Submit Application</button>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -262,12 +380,106 @@
                             <label class="form-label">Score (0-100)</label>
                             <input type="number" class="form-control form-control-lg text-center fw-bold fs-3" id="interviewScore" min="0" max="100" required>
                         </div>
-                        <div class="mb-4">
-                            <label class="form-label">Assign Office / School</label>
-                            <input type="text" class="form-control" id="assignedOffice" required placeholder="e.g. IT Department">
-                        </div>
                         <button type="submit" class="btn btn-info text-white w-100">Submit Assessment</button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Modal -->
+    <div class="modal fade glass-modal" id="assignModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Assign Office / School</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="assignForm">
+                        <input type="hidden" id="assignId">
+                        <p>Assigning: <strong id="assignName" class="text-success"></strong></p>
+                        <div class="mb-4">
+                            <label class="form-label">Assigned Office / School</label>
+                            <input type="text" class="form-control" id="assignedOffice" required placeholder="e.g. IT Department">
+                        </div>
+                        <button type="submit" class="btn btn-success text-white w-100">Confirm Assignment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Personal Info Modal -->
+    <div class="modal fade glass-modal" id="infoModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Personal Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="infoModalBody">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Education Modal -->
+    <div class="modal fade glass-modal" id="eduModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Education Records</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="eduModalBody">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Modal -->
+    <div class="modal fade glass-modal" id="trainModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Training Seminars</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="trainModalBody">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experience Modal -->
+    <div class="modal fade glass-modal" id="expModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Work Experience</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="expModalBody">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eligibility Modal -->
+    <div class="modal fade glass-modal" id="eligModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Eligibility</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="eligModalBody">
+                    <!-- Populated via JS -->
                 </div>
             </div>
         </div>
@@ -283,26 +495,46 @@
     </div>
     <div class="print-body">
         <div class="date-field" id="printDate">Date: [Date]</div>
-        <div class="subject">SUBJECT: NOTICE OF ASSIGNMENT</div>
         
-        <p>Dear <strong id="printName">[Name]</strong>,</p>
+        <p>
+            <strong>TO: <p id="printName">[NAME]</p></strong>
+            <strong id="ranking"><p>            [Teacher I]</p></strong>
+        </p>
         
-        <p>We are pleased to inform you that you have successfully passed the Recruitment Selection Process. Based on your comparative assessment and interview deliberation, you have met the rigorous standards of our institution.</p>
+
+        <p class="tabbed">Warm greetings!</p>
         
-        <p>Effective immediately, you are hereby given this assignment order to report to your designated office:</p>
+        <p class="tabbed">
+            By virtue of an appointment duly issued by this office, information is hereby given of your school assignment at <strong><p id="printOffice">[Assigned Office],</p></strong> Iligan City, effective this <strong><p id="printDate">[Date].</p></strong> 
+            Thus, you shall report directly to the School Head/School Principal of the said school for further instruction.
+        </p>
         
-        <div class="assigned-office-box">
+        <!-- <div class="assigned-office-box">
             <h2 id="printOffice">[Assigned Office]</h2>
-        </div>
-        
-        <p>Please report to the HR Department within five (5) working days from the receipt of this letter to complete your onboarding process.</p>
-        
-        <p>Congratulations, and we look forward to your contributions.</p>
+        </div> -->
+                
+        <p class="tabbed">
+            Moreover, you are directed to submit the DBM-CSC Form No. 1, "Position Description Form" for the attestation to this Office
+            thru Personnel Section within three (3) working days from receipt hereof.
+        </p>
+
+        <p class="tabbed">Compliance is enjoined.</p>
         
         <br><br><br>
-        <div class="signature">
-            <p>___________________________</p>
-            <p><strong>Chief Recruitment Officer</strong></p>
+        <div class="signature-right">
+            <p><strong>JONATHAN S. DELA PEÑA, PhD, CESO V</strong></p>
+            <p>Schools Division Superintendent</p>
+        </div>
+
+        <br><br><br>
+        <div class="signature-left">
+            <p>[assignedSchoolPrincipal]</p>
+            <p>[assignedSchoolTitle]</p>
+        </div>
+
+        <!-- Add Print Footer -->
+        <div class="print-footer" style="margin-top: 80px; font-size: 0.8em; text-align: center; color: #555; border-top: 1px solid #ddd; padding-top: 10px;">
+            <p>This is a system-generated document from the Recruitment & Selection Process Dashboard.</p>
         </div>
     </div>
 </div>

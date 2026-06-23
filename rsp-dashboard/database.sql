@@ -3,18 +3,63 @@ USE rsp_db;
 
 CREATE TABLE IF NOT EXISTS applicants (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    trackingNumber VARCHAR(50) DEFAULT NULL,
-    status ENUM('PENDING', 'QUALIFIED', 'DISQUALIFIED', 'COMPLETED') DEFAULT 'PENDING',
+    firstName VARCHAR(100) NOT NULL,
+    lastName VARCHAR(100) NOT NULL,
+    applicationCode VARCHAR(50) DEFAULT NULL,
+    district VARCHAR(50) DEFAULT NULL,
+    category VARCHAR(50) DEFAULT NULL,
+    status ENUM('PENDING', 'QUALIFIED', 'DISQUALIFIED', 'WAITING_FOR_ASSESSMENT', 'ASSESSED', 'NO_APPEARANCE', 'WAITING', 'ASSIGNED') DEFAULT 'PENDING',
     interviewScore INT DEFAULT NULL,
     interviewDate DATE DEFAULT NULL,
     assignedOffice VARCHAR(255) DEFAULT NULL,
+    
+    address TEXT DEFAULT NULL,
+    age INT DEFAULT NULL,
+    sex ENUM('Male', 'Female', 'Other') DEFAULT NULL,
+    civilStatus VARCHAR(50) DEFAULT NULL,
+    religion VARCHAR(100) DEFAULT NULL,
+    disability VARCHAR(100) DEFAULT NULL,
+    ethnicGroup VARCHAR(100) DEFAULT NULL,
+    emailAddress VARCHAR(150) DEFAULT NULL,
+    contactNo VARCHAR(50) DEFAULT NULL,
+    
     req_pds BOOLEAN DEFAULT FALSE,
     req_birthCert BOOLEAN DEFAULT FALSE,
     req_tor BOOLEAN DEFAULT FALSE,
+    assignmentReqStatus ENUM('INCOMPLETE', 'COMPLETE') DEFAULT 'INCOMPLETE',
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert some dummy data for testing
-INSERT INTO applicants (name, status) VALUES ('John Doe', 'PENDING');
-INSERT INTO applicants (name, status) VALUES ('Jane Smith', 'PENDING');
+CREATE TABLE IF NOT EXISTS applicant_education (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_id INT NOT NULL,
+    digitalCopyLink TEXT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS applicant_training (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    hours INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS applicant_experience (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_id INT NOT NULL,
+    details TEXT NOT NULL,
+    years INT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS applicant_eligibility (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    applicant_id INT NOT NULL,
+    digitalCopyLink TEXT NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (applicant_id) REFERENCES applicants(id) ON DELETE CASCADE
+);

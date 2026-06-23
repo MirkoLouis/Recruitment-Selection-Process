@@ -10,7 +10,10 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+// Static Files
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/bootstrap', express.static(path.join(__dirname, 'node_modules/bootstrap/dist')));
+app.use('/bootstrap-icons', express.static(path.join(__dirname, 'node_modules/bootstrap-icons/font')));
 
 // View Engine
 app.set('view engine', 'hbs');
@@ -43,28 +46,31 @@ hbs.registerHelper('formatDate', function(date) {
 app.get('/', async (req, res) => {
     try {
         // Base query ordered by creation date ascending (first come first serve)
-        const [applicants] = await db.query('SELECT * FROM applicants ORDER BY createdAt ASC');
+        const [applicants] = await db.query("SELECT *, CONCAT(firstName, ' ', lastName) AS name FROM applicants ORDER BY createdAt ASC");
         
-        // Step 1: Pending, ordered by when added (ASC)
-        const pending = applicants.filter(a => a.status === 'PENDING');
+        // Step 1: Initial Evaluation
+        const step1 = applicants.filter(a => ['PENDING', 'QUALIFIED', 'DISQUALIFIED'].includes(a.status));
         
-        // Step 2: Qualified for interview, ordered by closest interview date (ASC)
-        const qualified = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore === null)
-                                    .sort((a, b) => new Date(a.interviewDate) - new Date(b.interviewDate));
+        // Step 2: Deliberation Sheet, ordered by closest interview date (ASC)
+        const step2 = applicants.filter(a => a.status === 'WAITING_FOR_ASSESSMENT')
+                                .sort((a, b) => new Date(a.interviewDate) - new Date(b.interviewDate));
         
-        // Step 3: Interviewed, ordered by score descending (highest first)
-        const interviewed = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore !== null)
-                                      .sort((a, b) => b.interviewScore - a.interviewScore);
+        // Step 3: Comparative Assessments, ordered by score descending (highest first)
+        const step3 = applicants.filter(a => a.status === 'ASSESSED')
+                                .sort((a, b) => b.interviewScore - a.interviewScore);
         
-        // Step 4: Assignment Orders, ordered by when added (first come first serve)
-        const assignmentOrders = applicants.filter(a => a.status === 'QUALIFIED' && a.interviewScore !== null);
+        // Step 4: Notice of Requirements
+        const step4 = applicants.filter(a => a.status === 'WAITING');
+        
+        // Step 5: Assignment Orders
+        const step5 = applicants.filter(a => a.status === 'ASSIGNED');
         
         res.render('index', { 
-            applicants,
-            pending,
-            qualified,
-            interviewed,
-            assignmentOrders
+            step1,
+            step2,
+            step3,
+            step4,
+            step5
         });
     } catch (error) {
         console.error(error);
@@ -76,36 +82,69 @@ app.get('/', async (req, res) => {
 // Add new applicant
 app.post('/api/applicants', async (req, res) => {
     try {
-        const { name } = req.body;
-        await db.query('INSERT INTO applicants (name) VALUES (?)', [name]);
+        const { firstName, lastName, district, category } = req.body;
+        
+        // Find highest increment for this district & category
+        const prefix = `${district}-${category}-`;
+        const [rows] = await db.query(
+            "SELECT applicationCode FROM applicants WHERE applicationCode LIKE ?", 
+            [`${prefix}%`]
+        );
+        
+        let maxIncrement = 0;
+        rows.forEach(row => {
+            if (row.applicationCode) {
+                const parts = row.applicationCode.split('-');
+                if (parts.length === 3) {
+                    const num = parseInt(parts[2], 10);
+                    if (!isNaN(num) && num > maxIncrement) {
+                        maxIncrement = num;
+                    }
+                }
+            }
+        });
+        
+        const newCode = `${prefix}${maxIncrement + 1}`;
+        
+        await db.query(
+            'INSERT INTO applicants (firstName, lastName, district, category, applicationCode) VALUES (?, ?, ?, ?, ?)', 
+            [firstName, lastName, district, category, newCode]
+        );
+        res.json({ success: true, applicationCode: newCode });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete Applicant
+app.delete('/api/applicants/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.query('DELETE FROM applicants WHERE id = ?', [id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Update applicant status (Qualify/Disqualify)
-app.post('/api/applicants/:id/status', async (req, res) => {
+// Disqualify Applicant
+app.post('/api/applicants/:id/disqualify', async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, interviewDate, trackingNumber } = req.body;
-        
-        let query = 'UPDATE applicants SET status = ?';
-        let params = [status];
-        
-        if (interviewDate) {
-            query += ', interviewDate = ?';
-            params.push(interviewDate);
-        }
-        if (trackingNumber) {
-            query += ', trackingNumber = ?';
-            params.push(trackingNumber);
-        }
-        
-        query += ' WHERE id = ?';
-        params.push(id);
-        
-        await db.query(query, params);
+        await db.query(`UPDATE applicants SET status = 'DISQUALIFIED' WHERE id = ?`, [id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Qualify Applicant
+app.post('/api/applicants/:id/qualify', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { interviewDate } = req.body;
+        await db.query(`UPDATE applicants SET status = 'WAITING_FOR_ASSESSMENT', interviewDate = ? WHERE id = ?`, [interviewDate, id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -142,17 +181,161 @@ app.post('/api/applicants/:id/requirement', async (req, res) => {
     }
 });
 
-// Update applicant score and assigned office
+// Update applicant score
 app.post('/api/applicants/:id/score', async (req, res) => {
     try {
         const { id } = req.params;
-        const { interviewScore, assignedOffice } = req.body;
-        
-        await db.query('UPDATE applicants SET interviewScore = ?, assignedOffice = ? WHERE id = ?', 
-            [interviewScore, assignedOffice || 'Pending Assignment', id]);
+        const { score } = req.body;
+        await db.query(`UPDATE applicants SET interviewScore = ?, status = 'ASSESSED' WHERE id = ?`, [score, id]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Proceed to Requirements (Step 3 -> Step 4)
+app.post('/api/applicants/:id/proceed-requirements', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.query(`UPDATE applicants SET status = 'WAITING' WHERE id = ?`, [id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Toggle Assignment Requirement Status (Step 4)
+app.post('/api/applicants/:id/toggle-assignment-req', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body; // 'COMPLETE' or 'INCOMPLETE'
+        await db.query(`UPDATE applicants SET assignmentReqStatus = ? WHERE id = ?`, [status, id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Assign Applicant (Step 4 -> Step 5)
+app.post('/api/applicants/:id/assign', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { office } = req.body;
+        await db.query(`UPDATE applicants SET status = 'ASSIGNED', assignedOffice = ? WHERE id = ?`, [office, id]);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update Personal Info
+app.put('/api/applicants/:id/info', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { firstName, lastName, address, age, sex, civilStatus, religion, disability, ethnicGroup, emailAddress, contactNo } = req.body;
+        await db.query(
+            `UPDATE applicants SET firstName=?, lastName=?, address=?, age=?, sex=?, civilStatus=?, religion=?, disability=?, ethnicGroup=?, emailAddress=?, contactNo=? WHERE id=?`, 
+            [firstName, lastName, address, age || null, sex, civilStatus, religion, disability, ethnicGroup, emailAddress, contactNo, id]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Add Education
+app.post('/api/applicants/:id/education', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { link } = req.body;
+        await db.query('INSERT INTO applicant_education (applicant_id, digitalCopyLink) VALUES (?, ?)', [id, link]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Delete Education
+app.delete('/api/education/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM applicant_education WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Add Training
+app.post('/api/applicants/:id/training', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, hours } = req.body;
+        await db.query('INSERT INTO applicant_training (applicant_id, title, hours) VALUES (?, ?, ?)', [id, title, hours]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Delete Training
+app.delete('/api/training/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM applicant_training WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Add Experience
+app.post('/api/applicants/:id/experience', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { details, years } = req.body;
+        await db.query('INSERT INTO applicant_experience (applicant_id, details, years) VALUES (?, ?, ?)', [id, details, years]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Delete Experience
+app.delete('/api/experience/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM applicant_experience WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Add Eligibility
+app.post('/api/applicants/:id/eligibility', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { link } = req.body;
+        await db.query('INSERT INTO applicant_eligibility (applicant_id, digitalCopyLink) VALUES (?, ?)', [id, link]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Delete Eligibility
+app.delete('/api/eligibility/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM applicant_eligibility WHERE id = ?', [req.params.id]);
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ error: error.message }); }
+});
+
+// Get Full Details for Modals
+app.get('/api/applicants/:id/details', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [appRow] = await db.query("SELECT *, CONCAT(firstName, ' ', lastName) AS name FROM applicants WHERE id = ?", [id]);
+        if (!appRow.length) return res.status(404).json({ error: 'Not found' });
+        
+        const [edu] = await db.query('SELECT * FROM applicant_education WHERE applicant_id = ?', [id]);
+        const [train] = await db.query('SELECT * FROM applicant_training WHERE applicant_id = ?', [id]);
+        const [exp] = await db.query('SELECT * FROM applicant_experience WHERE applicant_id = ?', [id]);
+        const [elig] = await db.query('SELECT * FROM applicant_eligibility WHERE applicant_id = ?', [id]);
+        
+        res.json({
+            applicant: appRow[0],
+            education: edu,
+            training: train,
+            experience: exp,
+            eligibility: elig
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
